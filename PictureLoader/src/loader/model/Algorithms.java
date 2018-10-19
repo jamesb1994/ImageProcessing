@@ -28,7 +28,8 @@ public class Algorithms {
 	private AllBlackPixels allBlackPixels;
 	private ParticleDatabase particleDatabase;
 	private BufferedImage originalImage;
-	
+	private Image binaryImage;
+	private PixelReader reader;
 
 	public Algorithms() {
 
@@ -40,6 +41,10 @@ public class Algorithms {
 
 	public void setOriginalImage(BufferedImage originalImage) {
 		this.originalImage = originalImage;
+	}
+
+	public void setBinaryImage(Image binaryImage) {
+		this.binaryImage = binaryImage;
 	}
 
 	/*
@@ -145,12 +150,13 @@ public class Algorithms {
 		 * LinkConnectedComponents is called. This runs the connected pixel algorithm,
 		 * which eventually gives us particles made up of connected black pixels
 		 * 
-		 * The bit underneath draws single pixels in red because...reasons...?
+		 * 
 		 */
 
 		BufferedImage buffBinary = SwingFXUtils.fromFXImage(binaryImage, null);
+		setBinaryImage(binaryImage);
+		this.reader = this.binaryImage.getPixelReader();
 		linkConnectedComponents(buffBinary);
-
 
 		return binaryImage;
 	}
@@ -160,12 +166,10 @@ public class Algorithms {
 		/*
 		 * Clear previous edge finding data so that multiple button presses will work
 		 */
-		
+
 		this.particleDatabase.getValidParticleList().clear();
 		this.particleDatabase.getAllEdgePixels().clear();
 		this.particleDatabase.getAllPixels().clear();
-
-		
 
 		/*
 		 * Run the algorithm for checking if a particle is in focus. If it is, the edge
@@ -175,7 +179,6 @@ public class Algorithms {
 		 */
 
 		checkValidParticles();
-		
 
 		WritableImage imageAfterEdges = new WritableImage(originalImage.getWidth(), originalImage.getHeight());
 		Image originalToRead = SwingFXUtils.toFXImage(originalImage, null);
@@ -193,10 +196,7 @@ public class Algorithms {
 				}
 			}
 		}
-		
-		
-		
-		
+
 		return imageAfterEdges;
 
 	}
@@ -269,6 +269,10 @@ public class Algorithms {
 
 					if (readBinary.getColor(x, y).equals(black)) {
 						this.allBlackPixels.add(pixel);
+
+						if (isPixelEdge(pixel)) {
+							pixel.setEdgePixel(true);
+						}
 
 						if (this.pixelCategoryMap.isEmpty()) {
 							this.pixelCategoryMap.put(1, new ArrayList<Pixel>());
@@ -468,16 +472,74 @@ public class Algorithms {
 
 			}
 
-			if (validEdgePixels / particleCheck.getEdgePixels().size() >= 0.8) {
-				particleCheck.setValidParticle(true);
-				this.particleDatabase.addValid(particleCheck);
-				particleCheck.setIndex(this.particleDatabase.getValidParticleList().indexOf(particleCheck)+1);
+			try {
+				if (validEdgePixels / particleCheck.getEdgePixels().size() >= 0.8) {
+					particleCheck.setValidParticle(true);
+					if (particleCheck.completeEdge()) {
+						this.particleDatabase.addValid(particleCheck);
+						particleCheck.setIndex(this.particleDatabase.getValidParticleList().indexOf(particleCheck) + 1);
+					}
+				}
+			}
+
+			catch (ArithmeticException e) {
 			}
 
 			this.validEdgePixels = 0;
 		}
-		
+
 		this.particleDatabase.addToStorage();
+
+	}
+
+	/*
+	 * Check black pixels for white neighbours. Method receives pixel of interest,
+	 * generate neighbours in the 4 component pattern, check if the neighbours are
+	 * white. White neighbour means edge pixel.
+	 */
+
+	public boolean isPixelEdge(Pixel pixel) {
+
+		List<Pixel> helperPixelList = new ArrayList<Pixel>();
+		boolean isEdge = false;
+		int iteration = 2;
+
+		try {
+
+			Pixel up = new Pixel(pixel.getXCoordinate(), pixel.getYCoordinate() - 1);
+			Pixel down = new Pixel(pixel.getXCoordinate(), pixel.getYCoordinate() + 1);
+			Pixel left = new Pixel(pixel.getXCoordinate() - 1, pixel.getYCoordinate());
+			Pixel right = new Pixel(pixel.getXCoordinate() + 1, pixel.getYCoordinate());
+
+			Collections.addAll(helperPixelList, right, up, left, down);
+		}
+
+		catch (Exception e) {
+			System.out.println("Out of Bounds in edge pixels");
+
+		}
+
+		for (Pixel pixelCheck : helperPixelList) {
+
+			if (reader.getColor(pixelCheck.getXCoordinate(), pixelCheck.getYCoordinate()).equals(white)) {
+
+				isEdge = true;
+
+				if (iteration % 2 == 0) {
+					pixel.setEdgePixelHorizontal(true);
+				} else {
+					pixel.setEdgePixelVertical(true);
+				}
+			}
+
+			iteration++;
+		}
+
+		if (isEdge) {
+			return true;
+		}
+
+		return false;
 
 	}
 
@@ -502,10 +564,11 @@ public class Algorithms {
 		for (Integer key : this.pixelCategoryMap.keySet()) {
 			Particle particle = new Particle(this.pixelCategoryMap.get(key));
 			this.particleDatabase.add(particle);
+			particle.setOriginalImage(originalImage);
 		}
-		
+
 	}
-	
+
 	public ParticleDatabase getDatabase() {
 		return this.particleDatabase;
 	}

@@ -7,10 +7,16 @@ public class Pixel implements Comparable<Pixel> {
 	private int y;
 	private double edgeStrength;
 	private int storedParticle;
+	private boolean edgePixel;
+	private boolean edgePixelHorizontal;
+	private boolean edgePixelVertical;
 	
 	public Pixel (int x, int y) {
 		this.x = x;
 		this.y = y;
+		this.edgePixel = false;
+		this.edgePixelHorizontal = false;
+		this.edgePixelVertical = false;
 	}
 	
 	public int getXCoordinate() {
@@ -86,6 +92,31 @@ public class Pixel implements Comparable<Pixel> {
 	public void setStoredParticle(int value) {
 		this.storedParticle = value;
 	}
+	
+	public void setEdgePixel(boolean value) {
+		this.edgePixel = value;
+	}
+	
+	public boolean getEdgePixel() {
+		return this.edgePixel;
+	}
+	
+	public void setEdgePixelHorizontal(boolean value) {
+		this.edgePixelHorizontal = value;
+	}
+	
+	public boolean getEdgePixelHorizontal() {
+		return this.edgePixelHorizontal;
+	}
+	
+	public void setEdgePixelVertical(boolean value) {
+		this.edgePixelVertical = value;
+	}
+	
+	public boolean getEdgePixelVertical() {
+		return this.edgePixelVertical;
+	}
+	
 
 	@Override
 	public int compareTo(Pixel pixelComparing) {

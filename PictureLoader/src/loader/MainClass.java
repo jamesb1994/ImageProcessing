@@ -18,6 +18,7 @@ public class MainClass extends Application {
 
 	@Override
 	public void start(Stage primaryStage) {
+		
 		this.primaryStage = primaryStage;
 		this.primaryStage.setTitle("Picture Analyser");
 		
